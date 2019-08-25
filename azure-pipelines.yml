@@ -4,6 +4,7 @@ trigger:
       - master
 
 variables:
+- group: nanofunction-pipeline-variables
 
 - name: 'linuxVmImage'
   value: 'ubuntu-16.04'
