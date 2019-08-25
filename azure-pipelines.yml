@@ -1,21 +1,83 @@
-# Node.js
-# Build a general Node.js project with npm.
-# Add steps that analyze code, save build artifacts, deploy, and more:
-# https://docs.microsoft.com/azure/devops/pipelines/languages/javascript
-
 trigger:
-- master
+  branches:
+    include:
+      - master
 
-pool:
-  vmImage: 'ubuntu-latest'
+variables:
 
-steps:
-- task: NodeTool@0
-  inputs:
-    versionSpec: '10.x'
-  displayName: 'Install Node.js'
+- name: 'linuxVmImage'
+  value: 'ubuntu-16.04'
 
-- script: |
-    npm install
-    npm run build
-  displayName: 'npm install and build'
+- name: 'windowsVmImage'
+  value: 'windows-2019'
+
+- name: 'Version.MajorMinor'
+  value: $(startingVersion)
+
+- name: 'Version.Revision'
+  value: $[counter(variables['Version.MajorMinor'], 0)]
+
+stages:
+  - stage: Build
+    displayName: 'Build'
+    jobs:
+      - job: Build
+        displayName: 'Build and Install Dependencies'
+        pool:
+          vmImage: $(linuxVmImage)
+
+        steps:
+        - task: NodeTool@0
+          displayName: 'Install Node.js'
+          inputs:
+            versionSpec: '10.x'
+
+        - script: |
+            npm ci
+            npm run test --if-present
+          displayName: 'Install Dependencies and Run Unit Tests'
+
+        - task: ArchiveFiles@2
+          displayName: 'Zip Build Artifact'
+          inputs:
+            rootFolderOrFile: '$(System.DefaultWorkingDirectory)'
+            includeRootFolder: true
+            archiveType: zip
+            archiveFile: $(Build.ArtifactStagingDirectory)/$(Build.BuildId).zip
+            replaceExistingArchive: true
+
+        - task: PublishPipelineArtifact@1
+          inputs:
+            path: $(Build.ArtifactStagingDirectory)/$(Build.BuildId).zip
+            artifact: nanofunction
+
+  - stage: Deploy
+    displayName: 'Deploy to $(targetFunctionAppName)'
+    dependsOn: Build
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
+    jobs:
+      - deployment: Deploy
+        displayName: 'Deploy to Stage'
+        pool:
+          vmImage: '$(windowsVmImage)'
+        environment: 'stage'
+
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+              - task: DownloadPipelineArtifact@2
+                inputs:
+                  artifact: nanofunction
+                  path: '$(System.DefaultWorkingDirectory)'
+              # https://docs.microsoft.com/en-us/azure/azure-functions/run-functions-from-deployment-package
+              # https://docs.microsoft.com/en-us/azure/devops/pipelines/tasks/deploy/azure-function-app?view=azure-devops
+              - task: AzureFunctionApp@1
+                displayName: 'Azure Functions App Deploy'
+                inputs:
+                  azureSubscription: $(azureServiceConnection)
+                  resourceGroupName: $(resourceGroupName)
+                  appName: $(functionAppName)
+                  deploymentMethod: runFromPackage
+                  appSettings: -WEBSITE_RUN_FROM_PACKAGE 1
+                  package: '$(System.DefaultWorkingDirectory)/$(Build.BuildId).zip'
