@@ -4,6 +4,7 @@ trigger:
       - master
 
 variables:
+# https://docs.microsoft.com/en-us/azure/devops/pipelines/library/variable-groups?view=azure-devops&tabs=yaml
 - group: nanofunction-pipeline-variables
 
 - name: 'linuxVmImage'
@@ -41,8 +42,8 @@ stages:
         - task: ArchiveFiles@2
           displayName: 'Zip Build Artifact'
           inputs:
-            rootFolderOrFile: '$(System.DefaultWorkingDirectory)'
-            includeRootFolder: true
+            rootFolderOrFile: '$(System.DefaultWorkingDirectory)/src'
+            includeRootFolder: false
             archiveType: zip
             archiveFile: $(Build.ArtifactStagingDirectory)/$(Build.BuildId).zip
             replaceExistingArchive: true
@@ -53,14 +54,14 @@ stages:
             artifact: nanofunction
 
   - stage: Deploy
-    displayName: 'Deploy to $(targetFunctionAppName)'
+    displayName: 'Deploy to Azure Function'
     dependsOn: Build
     condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
     jobs:
       - deployment: Deploy
         displayName: 'Deploy to Stage'
         pool:
-          vmImage: '$(windowsVmImage)'
+          vmImage: '$(linuxVmImage)'
         environment: 'stage'
 
         strategy:
@@ -81,4 +82,4 @@ stages:
                   appName: $(targetFunctionAppName)
                   deploymentMethod: runFromPackage
                   appSettings: -WEBSITE_RUN_FROM_PACKAGE 1
-                  package: '$(System.DefaultWorkingDirectory)/$(Build.BuildId).zip'
+                  package: '$(System.DefaultWorkingDirectory)/**/*.zip'
