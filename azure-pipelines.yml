@@ -78,7 +78,7 @@ stages:
                 inputs:
                   azureSubscription: $(azureServiceConnection)
                   resourceGroupName: $(resourceGroupName)
-                  appName: $(functionAppName)
+                  appName: $(targetFunctionAppName)
                   deploymentMethod: runFromPackage
                   appSettings: -WEBSITE_RUN_FROM_PACKAGE 1
                   package: '$(System.DefaultWorkingDirectory)/$(Build.BuildId).zip'
