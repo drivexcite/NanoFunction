@@ -69,6 +69,12 @@ stages:
                 inputs:
                   artifact: nanofunction
                   path: '$(System.DefaultWorkingDirectory)'
+              # https://docs.microsoft.com/en-us/azure/devops/pipelines/tasks/deploy/azure-key-vault?view=azure-devops
+              - task: AzureKeyVault@1
+                inputs:
+                  azureSubscription: $(azureServiceConnection)
+                  keyVaultName: $(keyVaultName)
+                  secretsFilter: 'Secret1,Secret2,Secret3,Secret4,Secret5'
               # https://docs.microsoft.com/en-us/azure/azure-functions/run-functions-from-deployment-package
               # https://docs.microsoft.com/en-us/azure/devops/pipelines/tasks/deploy/azure-function-app?view=azure-devops
               - task: AzureFunctionApp@1
@@ -79,5 +85,5 @@ stages:
                   appName: $(functionAppName)
                   slotName: $(slotName)
                   deploymentMethod: runFromPackage
-                  appSettings: -WEBSITE_RUN_FROM_PACKAGE 1
+                  appSettings: -WEBSITE_RUN_FROM_PACKAGE 1 -Secret1 $(Secret1) -Secret2 $(Secret2) -Secret3 $(Secret3) -Secret4 $(Secret4) -Secret5 $(Secret5)
                   package: '$(System.DefaultWorkingDirectory)/**/*.zip'
