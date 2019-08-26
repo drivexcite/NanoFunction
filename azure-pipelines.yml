@@ -61,7 +61,7 @@ stages:
       - deployment: Deploy
         displayName: 'Deploy to Stage'
         pool:
-          vmImage: '$(linuxVmImage)'
+          vmImage: '$(windowsVmImage)'
         environment: 'stage'
 
         strategy:
