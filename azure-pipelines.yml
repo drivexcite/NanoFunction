@@ -10,9 +10,6 @@ variables:
 - name: 'linuxVmImage'
   value: 'ubuntu-16.04'
 
-- name: 'windowsVmImage'
-  value: 'windows-2019'
-
 - name: 'Version.MajorMinor'
   value: $(startingVersion)
 
@@ -61,7 +58,7 @@ stages:
       - deployment: Deploy
         displayName: 'Deploy to Stage'
         pool:
-          vmImage: '$(windowsVmImage)'
+          vmImage: '$(linuxVmImage)'
         environment: 'stage'
 
         strategy:
