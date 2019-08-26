@@ -31,6 +31,8 @@ $GitHubRepoUrl = "https://github.com/drivexcite/nanofunction"
 $resourceGroup = 'DevOpsResourceGroup'
 $functionApp = 'HwDevOpsFunctionApp'
 $slotName = 'staging'
+$keyVaultName = "HwDevOpsKeyVault"
+
 
 # Login to Azure DevOps
 $env:AZURE_DEVOPS_EXT_PAT |  az devops login --organization $Organization
@@ -48,10 +50,10 @@ az pipelines create --name $PipelineName --description $PipelineDescription --re
 
 # Create a variable group
 $variableGroupName = "nanofunction-pipeline-variables"
-az pipelines variable-group create --name $variableGroupName --authorize true --variables azureServiceConnection=$AzureRmServiceConnectionName startingVersion=1.0 functionAppName=$functionApp slotName=$slotName resourceGroupName=$resourceGroup
+az pipelines variable-group create --name $variableGroupName --authorize true --variables azureServiceConnection=$AzureRmServiceConnectionName startingVersion=1.0 functionAppName=$functionApp slotName=$slotName resourceGroupName=$resourceGroup keyVaultName=$keyVaultName
 
 # Trigger the build
-# az pipelines build queue --definition-name NanoFunction --branch master --open
+# az pipelines build queue --definition-name $PipelineName --branch master --open
 
 #Swap slots
 # az functionapp deployment slot swap  -g $resourceGroup -n $functionApp --slot $slotName --target-slot production
