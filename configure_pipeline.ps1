@@ -1,39 +1,57 @@
- # Azure DevOps PAT = foo
- # GitHub PAT = bar
-
 # az ad sp create-for-rbac -n "AzureDevOps.EvilHealthwise.Platform2" --role owner
 # {
-#   "appId": "9d25a2db-56c8-48f9-bdad-3f773fa22478",
+#   "appId": "clientId",
 #   "displayName": "AzureDevOps.EvilHealthwise.Platform2",
 #   "name": "http://AzureDevOps.EvilHealthwise.Platform2",
-#   "password": "baz",
-#   "tenant": "cee5d4e9-42e5-48c2-8a03-3406fd5b9242"
+#   "password": "secret",
+#   "tenant": "tenant"
 # }
 
 # To prevent interactive mode from interrupting the scripts, set these environment variables.
-$env:AZURE_DEVOPS_EXT_GITHUB_PAT="bar"
-$env:AZURE_DEVOPS_EXT_AZURE_RM_SERVICE_PRINCIPAL_KEY="baz"
+$tenant = "tenant"
+$servicePrincipalName = "clientId"
+$azureSubscription = "subscriptionId"
+$subscriptionName = "Visual Studio Enterprise"
+
+$env:AZURE_DEVOPS_EXT_GITHUB_PAT="github pat"
+$env:AZURE_DEVOPS_EXT_AZURE_RM_SERVICE_PRINCIPAL_KEY="secret"
+$env:AZURE_DEVOPS_EXT_PAT = 'azure devops pat'
 
 # Variables for pipeline and repository related artifacts
+$Organization = 'https://dev.azure.com/EvilHealthwise'
+$Project = 'Nanofunction'
+
 $AzureRmServiceConnectionName = "AzureVsEnterprise"
 $GitHubServiceConnectionName = "GitHubTona"
-$PipelineName = "NanoFunction App Deploy"
+$PipelineName = "NanoFunction"
 $PipelineDescription = "NanoFunction App Deploy"
 $GitHubRepoUrl = "https://github.com/drivexcite/nanofunction"
 
 # Variables for Azure Related Artifacts
 $resourceGroup = 'DevOpsResourceGroup'
 $functionApp = 'HwDevOpsFunctionApp'
+$slotName = 'staging'
 
-az devops configure --defaults organization=https://dev.azure.com/EvilHealthwise project=Platform
+# Login to Azure DevOps
+$env:AZURE_DEVOPS_EXT_PAT |  az devops login --organization $Organization
+
+# Create the Project
+az devops project create --name $project --organization $organization --visibility private
+az devops configure --defaults organization=$Organization project=$Project
 
 # Service connections
-$azureServiceConnectionId = az devops service-endpoint azurerm create --name $AzureRmServiceConnectionName --azure-rm-service-principal-id "9d25a2db-56c8-48f9-bdad-3f773fa22478" --azure-rm-subscription-id "45d3970c-1cf3-47f8-86fa-ae717be4baa9" --azure-rm-subscription-name "Visual Studio Enterprise" --azure-rm-tenant-id "cee5d4e9-42e5-48c2-8a03-3406fd5b9242" --query "id"
+$azureServiceConnectionId = az devops service-endpoint azurerm create --name $AzureRmServiceConnectionName --azure-rm-service-principal-id $servicePrincipalName --azure-rm-subscription-id $azureSubscription --azure-rm-subscription-name $subscriptionName --azure-rm-tenant-id $tenant --query "id"
 $githubServiceConnectionId = az devops service-endpoint github create --github-url $GitHubRepoUrl --name $GitHubServiceConnectionName --query "id"
 
 # Create the pipeline (must be run interactively)
-az pipelines create --name $PipelineName --description $PipelineDescription --repository $GitHubRepoUrl --branch master --repository-type github --service-connection $azureServiceConnectionId --service-connection $githubServiceConnectionId
+az pipelines create --name $PipelineName --description $PipelineDescription --repository $GitHubRepoUrl --branch master --repository-type github --service-connection $azureServiceConnectionId --service-connection $githubServiceConnectionId  --yml-path azure-pipelines.yml
 
 # Create a variable group
 $variableGroupName = "nanofunction-pipeline-variables"
-az pipelines variable-group create --name $variableGroupName --authorize true --variables azureServiceConnection=$AzureRmServiceConnectionName startingVersion=1.0 targetFunctionAppName=$functionApp resourceGroupName=$resourceGroup
+az pipelines variable-group create --name $variableGroupName --authorize true --variables azureServiceConnection=$AzureRmServiceConnectionName startingVersion=1.0 functionAppName=$functionApp slotName=$slotName resourceGroupName=$resourceGroup
+
+# Trigger the build
+# az pipelines build queue --definition-name NanoFunction --branch master --open
+
+#Swap slots
+# az functionapp deployment slot swap  -g $resourceGroup -n $functionApp --slot $slotName --target-slot production
