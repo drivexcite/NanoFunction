@@ -16,6 +16,8 @@ $subscriptionName = "Visual Studio Enterprise"
 $env:AZURE_DEVOPS_EXT_GITHUB_PAT="github pat"
 $env:AZURE_DEVOPS_EXT_AZURE_RM_SERVICE_PRINCIPAL_KEY="secret"
 $env:AZURE_DEVOPS_EXT_PAT = 'azure devops pat'
+$env:AZURE_DEVOPS_EXT_BITBUCKET_USERNAME="bitBucketUser"
+$env:AZURE_DEVOPS_EXT_BITBUCKET_PAT="bitBucketPAT"
 
 # Variables for pipeline and repository related artifacts
 $Organization = 'https://dev.azure.com/EvilHealthwise'
@@ -45,8 +47,15 @@ az devops configure --defaults organization=$Organization project=$Project
 $azureServiceConnectionId = az devops service-endpoint azurerm create --name $AzureRmServiceConnectionName --azure-rm-service-principal-id $servicePrincipalName --azure-rm-subscription-id $azureSubscription --azure-rm-subscription-name $subscriptionName --azure-rm-tenant-id $tenant --query "id"
 $githubServiceConnectionId = az devops service-endpoint github create --github-url $GitHubRepoUrl --name $GitHubServiceConnectionName --query "id"
 
+# https://docs.microsoft.com/en-us/azure/devops/cli/service_endpoint?view=azure-devops
+$bitBucketServiceConnectionId = az devops service-endpoint create --service-endpoint-configuration BitBucketServiceConnectionDefinition --query "id"
+
 # Create the pipeline (must be run interactively)
-az pipelines create --name $PipelineName --description $PipelineDescription --repository $GitHubRepoUrl --branch master --repository-type github --service-connection $azureServiceConnectionId --service-connection $githubServiceConnectionId  --yml-path azure-pipelines.yml
+$bitBucketServiceDefinition = Get-Content -Path .\BitBucketServiceConnectionTemplate.json
+$bitBucketServiceConnection =  $bitBucketServiceDefinition.Replace("BitBucketUserName", $env:AZURE_DEVOPS_EXT_BITBUCKET_USERNAME).Replace("BitBucketPAT", $env:AZURE_DEVOPS_EXT_BITBUCKET_PAT)
+$bitBucketServiceConnection | Out-File -FilePath .\BitBucketServiceConnectionDefinition.json
+
+az pipelines create --name $PipelineName --description $PipelineDescription --repository $GitHubRepoUrl --branch master --repository-type github --service-connection $azureServiceConnectionId --service-connection $githubServiceConnectionId --service-connection $bitBucketServiceConnectionId --yml-path azure-pipelines.yml
 
 # Create a variable group
 $variableGroupName = "nanofunction-pipeline-variables"
