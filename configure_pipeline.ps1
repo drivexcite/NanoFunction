@@ -47,14 +47,14 @@ az devops configure --defaults organization=$Organization project=$Project
 $azureServiceConnectionId = az devops service-endpoint azurerm create --name $AzureRmServiceConnectionName --azure-rm-service-principal-id $servicePrincipalName --azure-rm-subscription-id $azureSubscription --azure-rm-subscription-name $subscriptionName --azure-rm-tenant-id $tenant --query "id"
 $githubServiceConnectionId = az devops service-endpoint github create --github-url $GitHubRepoUrl --name $GitHubServiceConnectionName --query "id"
 
-# https://docs.microsoft.com/en-us/azure/devops/cli/service_endpoint?view=azure-devops
-$bitBucketServiceConnectionId = az devops service-endpoint create --service-endpoint-configuration BitBucketServiceConnectionDefinition --query "id"
-
-# Create the pipeline (must be run interactively)
 $bitBucketServiceDefinition = Get-Content -Path .\BitBucketServiceConnectionTemplate.json
 $bitBucketServiceConnection =  $bitBucketServiceDefinition.Replace("BitBucketUserName", $env:AZURE_DEVOPS_EXT_BITBUCKET_USERNAME).Replace("BitBucketPAT", $env:AZURE_DEVOPS_EXT_BITBUCKET_PAT)
 $bitBucketServiceConnection | Out-File -FilePath .\BitBucketServiceConnectionDefinition.json
 
+# https://docs.microsoft.com/en-us/azure/devops/cli/service_endpoint?view=azure-devops
+$bitBucketServiceConnectionId = az devops service-endpoint create --service-endpoint-configuration BitBucketServiceConnectionDefinition.json --query "id"
+
+# Create the pipeline
 az pipelines create --name $PipelineName --description $PipelineDescription --repository $GitHubRepoUrl --branch master --repository-type github --service-connection $azureServiceConnectionId --service-connection $githubServiceConnectionId --service-connection $bitBucketServiceConnectionId --yml-path azure-pipelines.yml
 
 # Create a variable group
