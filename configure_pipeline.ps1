@@ -41,6 +41,16 @@ $env:AZURE_DEVOPS_EXT_PAT |  az devops login --organization $Organization
 az devops project create --name $project --organization $organization --visibility private
 az devops configure --defaults organization=$Organization project=$Project
 
+# 'Create' users
+az devops user add --email-id ajackson@healthwise.org --license-type stakeholder --send-email-invite false
+az devops user add --email-id acarr@healthwise.org --license-type stakeholder --send-email-invite false
+az devops user add --email-id dray@healthwise.org --license-type stakeholder --send-email-invite false
+az devops user add --email-id emassaquoi@healthwise.org --license-type stakeholder --send-email-invite false
+az devops user add --email-id mlyons@healthwise.org --license-type stakeholder --send-email-invite false
+az devops user add --email-id gcolby@healthwise.org --license-type stakeholder --send-email-invite false
+az devops user add --email-id medvalson@healthwise.org --license-type stakeholder --send-email-invite false
+az devops user add --email-id tstclair@healthwise.org --license-type stakeholder --send-email-invite false
+
 # Service connections
 $azureServiceConnectionId = az devops service-endpoint azurerm create --name $AzureRmServiceConnectionName --azure-rm-service-principal-id $servicePrincipalName --azure-rm-subscription-id $azureSubscription --azure-rm-subscription-name $subscriptionName --azure-rm-tenant-id $tenant --query "id"
 $githubServiceConnectionId = az devops service-endpoint github create --github-url $GitHubRepoUrl --name $GitHubServiceConnectionName --query "id"
